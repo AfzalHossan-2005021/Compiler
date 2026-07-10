@@ -1,371 +1,285 @@
-# 🔧 Compiler — Mini C Compiler Suite
+# C-like Compiler Front End and 8086 Code Generator
 
-> **A production-ready compiler implementation for a C-like language subset, featuring full lexical analysis, syntax & semantic parsing, a scoped symbol table, and intermediate code generation with optimization.**
+This repository contains a manual implementation of a compiler pipeline for a course-defined C-like language subset. It includes a scoped symbol table, Flex-based lexical analysis, Bison-based syntax and semantic analysis, parse-tree/AST-style representation, 8086-style intermediate code generation, and peephole optimization.
 
-<div align="center">
+The project was developed from formal compiler-sessional specifications at BUET and focuses on explicit implementation of compiler mechanics rather than relying on high-level compiler frameworks.
 
-![Build Status](https://img.shields.io/badge/status-active-success.svg)
-![Language](https://img.shields.io/badge/language-C%2B%2B%20%7C%20C-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+## Core Capabilities
 
-</div>
+- Scoped symbol-table implementation with hash tables, chaining, nested scopes, and parent-scope lookup
+- Lexical analyzer for keywords, identifiers, literals, operators, punctuators, comments, and lexical errors
+- Bison parser for a C-like grammar with declarations, functions, statements, expressions, arrays, and control flow
+- Semantic analyzer for declaration checks, type consistency, array usage, function signatures, and parameter validation
+- Parse tree generation with grammar-rule logging and line-aware diagnostics
+- 8086-style assembly generation for expressions, assignments, control flow, functions, arrays, and `println`
+- Stack-based local variable and function-parameter handling
+- Peephole optimization for selected redundant assembly instruction patterns
 
----
+## Compiler Pipeline
 
-## 🎯 Overview
+| Stage | Directory | Implementation | Primary Output |
+| --- | --- | --- | --- |
+| Symbol table | `SymbolTable/` | C++ | Scoped identifier storage and lookup |
+| Lexical analysis | `LexicalAnalyzer/` | Flex, C++ | Token stream, logs, lexical diagnostics |
+| Syntax analysis | `SyntexSemanticAnalyzer/` | Flex, Bison, C++ | Parse tree and grammar-rule logs |
+| Semantic analysis | `SyntexSemanticAnalyzer/` | Bison semantic actions, C++ | Type/scope/function diagnostics |
+| Code generation | `IntermediateCodeGenerator/` | Bison, C++ tree traversal | `code.asm` |
+| Optimization | `IntermediateCodeGenerator/` | C++ peephole pass | `optimized_code.asm` |
 
-This is a **comprehensive compiler project** demonstrating all major phases of compiler design and implementation. Built with **Flex** and **Bison**, it provides a complete pipeline from source code tokenization through intermediate code generation with optimization.
+## Specification Mapping
 
-### What Makes This Special
+The implementation follows four staged specifications:
 
-✨ **Production-grade architecture** | 🔍 **Full error reporting** | 📊 **AST generation** | ⚡ **Code optimization** | 🎓 **Educational value**
+### 1. Symbol Table
 
----
+- `SymbolInfo`, `ScopeTable`, and `SymbolTable` abstractions
+- sdbm-style hashing with separate chaining
+- nested scope creation and removal
+- current-scope and parent-scope lookup
+- insert, lookup, delete, print-current, and print-all operations
+- file-driven command processing through `input.txt`
 
-## ✨ Core Compiler Phases
+### 2. Lexical Analysis
 
-| Phase | Component | Technology | Features |
-|-------|-----------|-----------|----------|
-| **Lexical Analysis** | LexicalAnalyzer | Flex | Token generation, line tracking |
-| **Syntax Analysis** | SyntaxSemanticAnalyzer | Bison | AST construction, parse tree output |
-| **Semantic Analysis** | SyntaxSemanticAnalyzer | Bison + C++ | Type checking, scope validation, error reporting |
-| **Symbol Management** | SymbolTable | C++ | Scoped hash table, redefinition detection |
-| **Code Generation** | IntermediateCodeGenerator | Bison + C++ | Assembly-like IR generation |
-| **Optimization** | IntermediateCodeGenerator | C++ | Code simplification & peephole optimization |
+- token recognition using Flex
+- keywords, identifiers, constants, operators, punctuators, strings, and characters
+- single-line and multi-line comment handling
+- line tracking and diagnostic logging
+- symbol-table interaction for identifiers where required by the phase
 
----
+### 3. Syntax and Semantic Analysis
 
-## 🚀 Key Features
+- parser generated from Bison grammar rules
+- conflict handling for ambiguous constructs such as `if`/`else`
+- parse-tree construction and matched-rule logging
+- scoped declaration insertion
+- semantic validation for:
+  - undeclared identifiers
+  - duplicate declarations in the same scope
+  - assignment type compatibility
+  - array indexing and array/non-array misuse
+  - modulus operand types
+  - function declaration/definition consistency
+  - function-call argument count and type matching
+  - invalid use of `void` expressions
 
-### Language Support
-- **Data Types**: `int`, `float`, `void`
-- **Functions**: Declaration, definition, parameter passing, return types
-- **Control Flow**: `if`/`else`, `for`, `while` loops
-- **Data Structures**: Variables, arrays, expressions
-- **Type System**: Full type checking and type coercion
+### 4. Intermediate Code Generation
 
-### Compiler Capabilities
-- ✅ **Comprehensive Error Detection** — Semantic errors with line numbers and descriptions
-- ✅ **AST Generation** — Complete abstract syntax tree representation
-- ✅ **Parse Tree Output** — Text-based visualization of derivations
-- ✅ **Scoped Symbol Table** — Function and block-level scope management
-- ✅ **Redefinition Checking** — Prevents duplicate function/variable declarations
-- ✅ **Intermediate Code** — Assembly-like representation (3-address code)
-- ✅ **Code Optimization** — Simple but effective optimizer reducing code size
-- ✅ **Detailed Logging** — Parse progress, errors, and optimization steps
+- 8086-style assembly as the intermediate representation
+- tree traversal after successful syntax and semantic analysis
+- stack-frame setup for functions
+- stack-based local variables and function parameters
+- register-based return values
+- labels and conditional jumps for control flow
+- short-circuit style boolean code generation
+- generated `println` procedure
+- source-line comments in emitted assembly
+- peephole optimization for redundant `MOV`, redundant `PUSH`/`POP`, and no-op arithmetic patterns
 
----
+## Supported Language Subset
 
-## 📁 Project Architecture
+The compiler targets a BUET CSE 310 C-like language subset, including:
 
-```
+- types: `int`, `float`, `void`
+- global and local declarations
+- one-dimensional arrays
+- function declarations and definitions
+- parameterized function calls
+- assignment, arithmetic, relational, logical, unary, increment, and decrement expressions
+- `if`, `if-else`, `for`, and `while`
+- `return`
+- `println`
+
+It is not intended to be a complete ISO C compiler.
+
+## Grammar Coverage
+
+The parser implementation covers the main grammar families from the supplied Bison grammar:
+
+- program structure: `start`, `program`, `unit`
+- declarations: `var_declaration`, `declaration_list`, `type_specifier`
+- functions: `func_declaration`, `func_definition`, `parameter_list`, `argument_list`, `arguments`
+- scopes and statements: `compound_statement`, `statements`, `statement`
+- expressions: `expression`, `logic_expression`, `rel_expression`, `simple_expression`, `term`, `unary_expression`, `factor`
+- variables and arrays: `variable`
+
+This grammar supports operator-precedence-aware expression parsing, nested compound statements, declarations inside functions, array indexing, expression statements, control-flow statements, and function calls.
+
+## Repository Structure
+
+```text
 Compiler/
-├── LexicalAnalyzer/              # Phase 1: Tokenization
-│   ├── 2005021.l                 # Flex lexer specification
-│   └── input.txt                 # Sample lexer input
-│
-├── SyntexSemanticAnalyzer/       # Phase 2 & 3: Parsing & Semantics
-│   ├── 2005021.y                 # Bison grammar rules & semantic actions
-│   ├── 2005021.h                 # Header with AST node definitions
-│   ├── 2005021.l                 # Flex lexer for this phase
-│   ├── Makefile                  # Build automation
-│   └── input.c                   # Sample source code
-│
-├── IntermediateCodeGenerator/    # Phase 4 & 5: Code Gen & Optimization
-│   ├── code/
-│   │   ├── 2005021.y             # Enhanced Bison grammar for IR
-│   │   ├── 2005021.l             # Flex lexer
-│   │   ├── ast_utils.h           # AST node utilities
-│   │   ├── lex_utils.h           # Lexer utilities
-│   │   └── Makefile              # Build with test targets
-│   └── input/                    # Test cases (test1-7, loop, func, exp)
-│
-├── SymbolTable/                  # Symbol Table Implementation
-│   ├── 2005021_SymbolTable.h     # Scoped hash table with chaining
-│   ├── 2005021_Main.cpp          # CLI test harness
-│   └── input.txt                 # Symbol table test commands
-│
-├── README.md                      # This file
-└── LICENSE                        # Project license
+|-- SymbolTable/
+|   |-- 2005021_Main.cpp
+|   |-- 2005021_SymbolTable.h
+|   |-- input.txt
+|   `-- output.txt
+|
+|-- LexicalAnalyzer/
+|   |-- 2005021.l
+|   |-- 2005021.h
+|   `-- input.txt
+|
+|-- SyntexSemanticAnalyzer/
+|   |-- 2005021.l
+|   |-- 2005021.y
+|   |-- 2005021.h
+|   |-- Makefile
+|   `-- input.c
+|
+|-- IntermediateCodeGenerator/
+|   |-- code/
+|   |   |-- 2005021.l
+|   |   |-- 2005021.y
+|   |   |-- ast_utils.h
+|   |   |-- lex_utils.h
+|   |   `-- Makefile
+|   `-- input/
+|       |-- test1_i.c
+|       |-- test2_i.c
+|       |-- test3_i.c
+|       |-- test4_i.c
+|       |-- test5_i.c
+|       |-- test6_i.c
+|       |-- test7_i.c
+|       |-- exp.c
+|       |-- func.c
+|       `-- loop.c
+|
+|-- README.md
+`-- LICENSE
 ```
 
----
+## Requirements
 
-## 🛠️ Prerequisites
+- `g++`
+- `gcc`
+- `flex`
+- `bison`
+- `make`
 
-| Requirement | Purpose |
-|-------------|---------|
-| **flex** | Lexical analyzer generator |
-| **bison** | Parser generator |
-| **g++** | C++ compiler (C++11 or higher) |
-| **gcc** | C compiler |
-| **make** | Build automation tool |
-
-### Installation
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install flex bison build-essential
-```
-
-**macOS (Homebrew):**
-```bash
-brew install flex bison
-```
-
-**Windows:** Use WSL2, MSYS2, or MinGW with these tools installed
-
----
-
-## ⚡ Quick Start
-
-### 1️⃣ Syntax & Semantic Analysis
+Ubuntu/Debian:
 
 ```bash
-cd SyntexSemanticAnalyzer
-make         # Compile: flex + bison + g++
-make run     # Execute with input.c
+sudo apt-get install flex bison build-essential make
 ```
 
-**Outputs:**
-- `error.txt` — Compilation errors (if any)
-- `parse_tree.txt` — Derivation parse tree
-- `log.txt` — Compiler logs
+Windows users should use WSL2, MSYS2, or another Unix-like environment with Flex, Bison, `g++`, and `make`.
 
-### 2️⃣ Intermediate Code Generation
+## Running the Components
 
-```bash
-cd IntermediateCodeGenerator/code
-make test1   # Run test case 1
-# or
-make exp     # Run expression example
-```
-
-**Outputs:**
-- `code.asm` — Generated assembly-like code
-- `optimized_code.asm` — Optimized version
-
-### 3️⃣ Symbol Table Testing
+### Symbol Table
 
 ```bash
 cd SymbolTable
-make         # or: g++ 2005021_Main.cpp -o symbol_table
+g++ 2005021_Main.cpp -o symbol_table
 ./symbol_table
 ```
 
-**Outputs:**
-- `output.txt` — Symbol table operations results
+Reads commands from `input.txt` and writes results to `output.txt`.
 
-### 4️⃣ Lexical Analysis Only
+### Lexical Analyzer
 
 ```bash
 cd LexicalAnalyzer
 flex 2005021.l
 gcc lex.yy.c -lfl -o lexer
+./lexer input.txt
+```
+
+If your environment expects standard input:
+
+```bash
 ./lexer < input.txt
 ```
 
----
+### Syntax and Semantic Analyzer
 
-## 📚 Workflow & Usage
+```bash
+cd SyntexSemanticAnalyzer
+make
+```
 
-### Processing a C-like Source File
+The default target builds the lexer/parser and runs the analyzer on `input.c`.
 
-1. **Drop your source code** (e.g., `myprogram.c`) into `SyntexSemanticAnalyzer/`
-2. **Run the analyzer:**
-   ```bash
-   cd SyntexSemanticAnalyzer
-   make run INPUT=myprogram.c
-   ```
-3. **Check outputs:**
-   - `error.txt` → Any compilation issues
-   - `parse_tree.txt` → How your code was parsed
-   - `log.txt` → Detailed compilation steps
+Expected generated files:
 
-### Testing Code Generation
+- `log.txt`
+- `error.txt`
+- `parse_tree.txt`
 
-The `IntermediateCodeGenerator/code/Makefile` includes test targets:
-- `make test1` through `make test7` — Various language features
-- `make loop` — Loop constructs
-- `make func` — Function definitions
-- `make exp` — Expression evaluation
-- `make run` — Default test build
+### Intermediate Code Generator
 
----
+```bash
+cd IntermediateCodeGenerator/code
+make test1
+```
 
-## 🎓 Educational Value
+Available test targets:
 
-This project exemplifies:
-- ✅ Compiler architecture and design patterns
-- ✅ Lexical analysis with finite state machines
-- ✅ Context-free grammar and parsing algorithms
-- ✅ Abstract syntax tree construction
-- ✅ Symbol table design with scoping
-- ✅ Semantic analysis and type checking
-- ✅ Intermediate code generation
-- ✅ Code optimization techniques
-- ✅ Error handling and reporting
+```bash
+make test2
+make test3
+make test4
+make test5
+make test6
+make test7
+make exp
+make func
+make loop
+make bonustest1
+make bonustest2
+```
 
----
+Expected generated files:
 
-## 📝 Example
+- `code.asm`
+- `optimized_code.asm`
+- `log.txt`
+- `error.txt`
+- `parse_tree.txt`
 
-**Input C-like code** (`input.c`):
+## Example Source Program
+
 ```c
+int i, j;
+
 int main() {
-    int x = 5;
-    float y = 3.14;
-    if (x > 0) {
-        return x + y;
-    }
+    int k;
+
+    i = 1;
+    println(i);
+
+    j = 5 + 8;
+    println(j);
+
+    k = i + 2 * j;
+    println(k);
+
     return 0;
 }
 ```
 
-**Generated Intermediate Code** (`code.asm`):
-```asm
-; Assembly-like intermediate representation
-; with variables, function calls, jumps, etc.
-```
+For valid input programs, the final phase emits 8086-style assembly with stack-frame setup, expression evaluation, labels, conditional jumps, function-return handling, and calls to the generated `println` routine.
 
-**Optimized Output** (`optimized_code.asm`):
-```asm
-; Reduced, streamlined version
-; with dead code elimination, constant folding, etc.
-```
+## Implementation Notes
 
----
+- The symbol table is implemented manually using dynamically allocated chained hash tables.
+- Each scope owns a separate `ScopeTable` and links to its parent scope.
+- Parser semantic actions construct tree nodes, update symbol metadata, and report semantic errors with source-line context.
+- Code generation traverses the tree representation and emits assembly incrementally.
+- Local variables are addressed through stack offsets rather than data-segment declarations.
+- Boolean expressions use jump-oriented code generation where appropriate.
+- The optimizer performs a focused peephole pass after assembly generation.
 
-## 🔧 Build Details
+## Limitations
 
-### Manual Build
+- The language is a course-defined subset of C, not full C.
+- Floating-point code generation is intentionally limited by the intermediate-code-generation specification.
+- Error recovery is limited to the implemented grammar actions.
+- The directory name `SyntexSemanticAnalyzer` is preserved from the original project structure.
+- Generated build artifacts such as `lex.yy.c`, `*.tab.c`, `*.tab.h`, `a.out`, logs, and assembly files are excluded from the source-focused layout.
 
-**Syntax & Semantic Analyzer:**
-```bash
-cd SyntexSemanticAnalyzer
-bison -d 2005021.y       # Generate parser
-flex 2005021.l           # Generate lexer
-g++ 2005021.tab.c lex.yy.c -o analyzer
-./analyzer input.c
-```
+## License
 
-**With Make** (simpler):
-```bash
-make        # Auto-runs all above commands
-make run    # Execute with input.c
-```
-
----
-
-## 🧪 Testing Suites
-
-### Intermediate Code Generator Tests
-Located in `IntermediateCodeGenerator/input/`:
-- `test1_i.c` — Basic variable declarations
-- `test2_i.c` — Arithmetic expressions
-- `test3_i.c` — Control flow (if/else)
-- `test4_i.c` — Loops (for/while)
-- `test5_i.c` — Function calls
-- `test6_i.c` — Arrays and indexing
-- `test7_i.c` — Complex programs
-- `loop.c` — Loop optimization test
-- `func.c` — Function handling
-- `exp.c` — Expression evaluation
-- `bonustest1_i.c`, `bonustest2_i.c` — Advanced features
-
----
-
-## 📊 Code Statistics
-
-| Component | Files | Technology | Purpose |
-|-----------|-------|-----------|---------|
-| Lexical Analyzer | 2 files | Flex (`.l`) | Tokenization |
-| Syntax Analyzer | 3 files | Bison (`.y`) + C++ Header | Parsing & AST |
-| Symbol Table | 2 files | C++ (`.h`, `.cpp`) | Scope management |
-| Code Generator | 4 files | Bison (`.y`) + C++ Utilities | IR & Optimization |
-
----
-
-## 🎯 Design Highlights
-
-### Modular Architecture
-Each phase is independent and can be tested separately, making the codebase easy to understand and maintain.
-
-### Comprehensive Error Handling
-The compiler provides detailed error messages with exact line numbers, making debugging source code straightforward.
-
-### Optimized Output
-The intermediate code generator includes an optimizer that performs:
-- Dead code elimination
-- Constant folding
-- Redundant instruction removal
-- Code simplification
-
-### Scoped Symbol Table
-Properly handles function scope and block scope with a hash table implementation featuring collision resolution through chaining.
-
----
-
-## 📖 Documentation Output
-
-Each compilation generates detailed documentation:
-- **Parse Tree** — Visual representation of grammar derivations
-- **Error Log** — All syntax and semantic errors
-- **Compiler Log** — Phase-by-phase progress
-- **Intermediate Code** — Generated assembly-like code
-- **Optimized Code** — Final optimized representation
-
----
-
-## 💡 Tips & Tricks
-
-- **View generated files** after running — Check `error.txt`, `parse_tree.txt`, `code.asm` for compiler output
-- **Run individual test cases** from IntermediateCodeGenerator — Use `make test1`, `make test2`, etc.
-- **Symbol table debugging** — Check the `output.txt` file for operation results
-- **Lexer testing** — Use `LexicalAnalyzer/input.txt` for quick tokenization tests
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
-
----
-
-## 👨‍💻 Author
-
-Built as an educational compiler implementation project.
-
----
-
-<div align="center">
-
-**Made with ❤️ for educational purposes**
-
-[⬆ Back to top](#-compiler--mini-c-compiler-suite)
-
-</div>
-
-Commands in `input.txt` include `I` (Insert), `L` (Lookup), `D` (Delete), `P` (Print), `S` (Enter Scope), `E` (Exit Scope), `Q` (Quit).
-
----
-
-## 🧪 Test Inputs
-
-Look under `IntermediateCodeGenerator/input/` for sample C-like inputs (e.g. `test1_i.c`, `exp.c`, `func.c`, `loop.c`), and `SyntexSemanticAnalyzer/input.c` for parser tests.
-
----
-
-## ✅ How to Contribute
-
-- Open an issue describing the improvement or the bug
-- Create a branch, add tests or examples, and send a PR
-- Follow the existing code style: comments, logging behavior and clear error messages
-
----
-
-## 📜 License
-
-See the `LICENSE` file in the repository root for licensing details.
-
----
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
