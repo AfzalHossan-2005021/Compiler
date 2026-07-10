@@ -21,8 +21,8 @@ The project was developed from formal compiler-sessional specifications at BUET 
 | --- | --- | --- | --- |
 | Symbol table | `SymbolTable/` | C++ | Scoped identifier storage and lookup |
 | Lexical analysis | `LexicalAnalyzer/` | Flex, C++ | Token stream, logs, lexical diagnostics |
-| Syntax analysis | `SyntexSemanticAnalyzer/` | Flex, Bison, C++ | Parse tree and grammar-rule logs |
-| Semantic analysis | `SyntexSemanticAnalyzer/` | Bison semantic actions, C++ | Type/scope/function diagnostics |
+| Syntax analysis | `SyntaxSemanticAnalyzer/` | Flex, Bison, C++ | Parse tree and grammar-rule logs |
+| Semantic analysis | `SyntaxSemanticAnalyzer/` | Bison semantic actions, C++ | Type/scope/function diagnostics |
 | Code generation | `IntermediateCodeGenerator/` | Bison, C++ tree traversal | `code.asm` |
 | Optimization | `IntermediateCodeGenerator/` | C++ peephole pass | `optimized_code.asm` |
 
@@ -120,7 +120,7 @@ Compiler/
 |   |-- 2005021.h
 |   `-- input.txt
 |
-|-- SyntexSemanticAnalyzer/
+|-- SyntaxSemanticAnalyzer/
 |   |-- 2005021.l
 |   |-- 2005021.y
 |   |-- 2005021.h
@@ -196,7 +196,7 @@ If your environment expects standard input:
 ### Syntax and Semantic Analyzer
 
 ```bash
-cd SyntexSemanticAnalyzer
+cd SyntaxSemanticAnalyzer
 make
 ```
 
@@ -277,7 +277,6 @@ For valid input programs, the final phase emits 8086-style assembly with stack-f
 - The language is a course-defined subset of C, not full C.
 - Floating-point code generation is intentionally limited by the intermediate-code-generation specification.
 - Error recovery is limited to the implemented grammar actions.
-- The directory name `SyntexSemanticAnalyzer` is preserved from the original project structure.
 - Generated build artifacts such as `lex.yy.c`, `*.tab.c`, `*.tab.h`, `a.out`, logs, and assembly files are excluded from the source-focused layout.
 
 ## License
